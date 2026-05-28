@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=1024, help='Batch size')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-6, help='Weight decay')
-    parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs')
+    parser.add_argument('--num_epochs', type=int, default=30, help='Number of epochs')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--device', type=str, default='cuda:0', help='Training device')
     parser.add_argument('--topk', type=int, default=10, help='Top-k for evaluation')
