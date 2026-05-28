@@ -43,6 +43,6 @@ Once the propensity scores are ready, go back to the root directory and train th
 
 ```bash
 cd ..
-python ./src/main.py --dataset jdata \
+python ./src/main.py --dataset jdata
 ```
 ---
