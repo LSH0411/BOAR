@@ -1,0 +1,25 @@
+import argparse
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='BOAR: Beyond Observed Auxiliary Relations')
+    parser.add_argument('--dataset', type=str, default='jdata', help='Dataset name')
+    parser.add_argument('--data_dir', type=str, default='./data', help='Directory containing the data')
+    parser.add_argument('--checkpoint_dir', type=str, default='./checkpoint', help='Directory of model checkpoint')
+    parser.add_argument('--load_checkpoint', action='store_true', help='Load model checkpoint')
+    parser.add_argument('--log_dir', type=str, default='./log/', help='Directory for training logs')
+    parser.add_argument('--batch_size', type=int, default=1024, help='Batch size')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
+    parser.add_argument('--weight_decay', type=float, default=1e-6, help='Weight decay')
+    parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--device', type=str, default='cuda:0', help='Training device')
+    parser.add_argument('--topk', type=int, default=10, help='Top-k for evaluation')
+    parser.add_argument('--gnn_layers', type=int, default=2, help='Number of GNN layers')
+    parser.add_argument('--emb_dim', type=int, default=32, help='Embedding dimension')
+    parser.add_argument('--dense_cl_w', type=float, default=0.2, help='Weight for densification contrastive loss (lambda_dense)')
+    parser.add_argument('--dense_cl_temp', type=float, default=0.1, help='Temperature for densification contrastive loss')
+    parser.add_argument('--lsh_top_k', type=int, default=30, help='Top-k candidates per LSH bucket')
+    parser.add_argument('--refine_cl_w', type=float, default=0.2, help='Weight for refinement contrastive loss (lambda_refine)')
+    parser.add_argument('--refine_cl_temp', type=float, default=1.5, help='Temperature for refinement contrastive loss')
+    return parser.parse_args()
