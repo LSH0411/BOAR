@@ -2,7 +2,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='LGCN-G Settings')
-    parser.add_argument('--dataset', type=str, default='taobao', help='Dataset name')
+    parser.add_argument('--dataset', type=str, default='jdata', help='Dataset name')
     parser.add_argument('--data_dir', type=str, default='../data', help='Directory containing the data')
     parser.add_argument('--batch_size', type=int, default=1024, help='Batch size for target data')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
