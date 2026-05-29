@@ -11,6 +11,6 @@ def parse_args():
     parser.add_argument('--emb_dim', type=int, default=64, help='Embedding dimension')
     parser.add_argument('--num_epochs', type=int, default=5, help='Number of epochs')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--device', type=str, default='cuda:1', help='Training device')    
-    parser.add_argument('--neg_sample', type=int, default=10, help='')    
+    parser.add_argument('--device', type=str, default='cuda:0', help='Training device')    
+    parser.add_argument('--neg_sample', type=int, default=1, help='')    
     return parser.parse_args()
