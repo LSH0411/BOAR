@@ -30,7 +30,7 @@ Training BOAR consists of two stages.
 
 ### Stage 1: Propensity Score Estimation
 
-Before training the main model, you first need to estimate propensity scores from the global behavior graph. Navigate to the `get_propensity` directory and run:
+Before training the main model, you first need to estimate propensity scores. Navigate to the `get_propensity` directory and run:
 
 ```bash
 cd get_propensity
