@@ -1,0 +1,15 @@
+# Data (extracted from data.tar.gz)
+data/
+
+# Outputs
+log/
+runs/
+checkpoint/
+get_propensity/propensity_scores/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS
+.DS_Store

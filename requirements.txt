@@ -38,6 +38,7 @@ pandas==2.2.2
 psutil==5.9.8
 pyparsing==3.1.2
 PySocks==1.7.1
+PyYAML==6.0.1
 python-dateutil==2.9.0.post0
 pytz==2024.1
 requests==2.31.0

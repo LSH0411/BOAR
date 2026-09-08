@@ -39,7 +39,7 @@ class GumbelEdgePruner(nn.Module):
 
         # (3) Gumbel keep/drop
         logits = self.mlp(torch.cat([u_h, i_h], dim=-1))
-        keep_mask = F.gumbel_softmax(logits, tau=0.2, hard=True)[:, 0]
+        keep_mask = F.gumbel_softmax(logits, tau=self.gumbel_temp, hard=True)[:, 0]
 
         # (4) cos × RBF reweighting
         u_norm = F.normalize(u_h, p=2, dim=1)
@@ -78,24 +78,27 @@ class RefinementModule(nn.Module):
         self.bpr_loss = BPRLoss()
         self.cl_temp = args.refine_cl_temp
         self.cl_w = args.refine_cl_w
-        self.sigma = 20
+        self.sigma = args.sigma
+        self.dropout = args.dropout_refine
         self.user_embedding = nn.Embedding(self.n_users + 1, emb_dim, padding_idx=0)
         self.item_embedding = nn.Embedding(self.n_items + 1, emb_dim, padding_idx=0)
         self.convs = nn.ModuleDict()
         for behavior_type in self.total_behaviors:
             self.convs[behavior_type] = nn.ModuleList([
-                GraphConvLayer(emb_dim, emb_dim, 'gcn', sigma=self.sigma, dropout=0.1)
+                GraphConvLayer(emb_dim, emb_dim, 'gcn', sigma=self.sigma, dropout=self.dropout)
                 for _ in range(self.gnn_layers)
             ])
 
         self.edge_pruners = nn.ModuleDict({
-            behavior: GumbelEdgePruner(emb_dim, gumbel_temp=0.2, sigma=self.sigma)
+            behavior: GumbelEdgePruner(
+                emb_dim, gumbel_temp=args.prune_temp, sigma=self.sigma, init=args.prune_init
+            )
             for behavior in self.aux_behaviors
         })
 
         self.refine_convs = nn.ModuleDict({
             behavior: nn.ModuleList([
-                GraphConvLayer(emb_dim, emb_dim, 'dense', sigma=self.sigma, dropout=0.1)
+                GraphConvLayer(emb_dim, emb_dim, 'dense', sigma=self.sigma, dropout=self.dropout)
                 for _ in range(self.gnn_layers)
             ])
             for behavior in self.aux_behaviors
@@ -150,7 +153,6 @@ class RefinementModule(nn.Module):
             if behavior in self.edge_dict:
                 refined_edge_index, refined_edge_weight = self._build_pruned_graph(behavior, emb_glo, emb_target)
                 emb_aux = self._propagate_refined(emb_glo, refined_edge_index, refined_edge_weight, behavior)
-                # emb_aux = self._propagate(emb_glo, self.edge_dict[behavior], behavior)
                 emb_dict[behavior] = emb_aux
                 refined_aux_embs.append(emb_aux)
 

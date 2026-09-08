@@ -1,9 +1,16 @@
 import json
-import torch
-import numpy as np
 import os
-from tqdm import tqdm
+
+import numpy as np
+import torch
 from loguru import logger
+from tqdm import tqdm
+
+
+# Propensity of a user-item pair observed in an auxiliary behavior is shifted up
+# by this offset, and of an unobserved pair down, before clipping to [0, 1].
+OBS_OFFSET = 0.7
+
 
 class Trainer:
     def __init__(self, model, data, args):
@@ -15,7 +22,27 @@ class Trainer:
             lr=args.lr,
             weight_decay=args.weight_decay
         )
-        
+        self.out_dir = os.path.join(args.out_dir, args.dataset)
+        os.makedirs(self.out_dir, exist_ok=True)
+        self.aux_observed_mask = self._build_aux_observed_mask()
+
+    def _build_aux_observed_mask(self):
+        """Mask of user-item pairs observed in any auxiliary behavior."""
+        data_path = os.path.join(self.args.data_dir, self.args.dataset)
+        with open(os.path.join(data_path, 'statistics.json')) as f:
+            bsg_types = json.load(f)['bsg_types']
+
+        mask = torch.zeros(self.model.n_users + 1, self.model.n_items + 1, dtype=torch.bool)
+        for behavior in bsg_types:
+            if behavior in ('glo', 'buy'):
+                continue
+            edge_path = os.path.join(data_path, f'{behavior}.txt')
+            if not os.path.exists(edge_path):
+                continue
+            edges = np.loadtxt(edge_path, dtype=int)
+            mask[edges[:, 0], edges[:, 1]] = True
+        return mask
+
     def train_epoch(self, epoch):
         self.model.train()
         total_loss = 0
@@ -44,7 +71,10 @@ class Trainer:
             avg_loss = self.train_epoch(epoch)
             logger.info(f'Epoch {epoch+1}/{self.args.num_epochs}  loss: {avg_loss:.4f}')
 
-    def save_propensity_scores(self, save_path):
+        save_path = self.save_propensity_scores()
+        logger.info(f'Saved propensity scores to {save_path}')
+
+    def save_propensity_scores(self):
         self.model.eval()
 
         with torch.no_grad():
@@ -54,33 +84,15 @@ class Trainer:
             )
             scores = torch.sigmoid(torch.matmul(user_emb, item_emb.transpose(0, 1))).cpu()
 
-        data_path = os.path.join(self.args.data_dir, self.args.dataset)
-        with open(os.path.join(data_path, 'statistics.json')) as f:
-            bsg_types = json.load(f)['bsg_types']
-
-        n_u, n_i = self.model.n_users, self.model.n_items
-        mask = torch.zeros(n_u + 1, n_i + 1, dtype=torch.bool)
-        for beh in bsg_types:
-            if beh in ('glo', 'buy'):
-                continue
-            epath = os.path.join(data_path, f'{beh}.txt')
-            if not os.path.exists(epath):
-                continue
-            edges = np.loadtxt(epath, dtype=int)
-            mask[edges[:, 0], edges[:, 1]] = True
-
+        mask = self.aux_observed_mask
         H = min(scores.shape[0], mask.shape[0])
         W = min(scores.shape[1], mask.shape[1])
         scores_final = torch.clamp(
-            torch.where(mask[:H, :W], scores[:H, :W] + 0.7, scores[:H, :W] - 0.7),
+            torch.where(mask[:H, :W], scores[:H, :W] + OBS_OFFSET, scores[:H, :W] - OBS_OFFSET),
             min=0.0, max=1.0
         )
 
-        base_dir = os.path.dirname(os.path.dirname(save_path))
-        dataset_dir = os.path.basename(os.path.dirname(save_path))
-        path = os.path.join(base_dir, dataset_dir, os.path.basename(save_path))
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-
         propensity = scores_final.numpy().astype(np.float16)
-        np.save(path, propensity)
-        return propensity
+        save_path = os.path.join(self.out_dir, 'propensity_scores.npy')
+        np.save(save_path, propensity)
+        return save_path

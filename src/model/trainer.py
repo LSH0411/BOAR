@@ -13,7 +13,7 @@ class BOARTrainer:
         self.densification_module = densification_module
         self.data = data
         self.args = args
-        self.topk = 10
+        self.topk = args.topk
         self.refine_optimizer = torch.optim.Adam(
             self.refinement_module.parameters(),
             lr=args.lr, weight_decay=args.weight_decay,
@@ -26,12 +26,12 @@ class BOARTrainer:
         self._build_auxiliary_masks()
 
         # Logging
-        log_dir = os.path.join('./log/', args.dataset, args.log_dir)
+        log_dir = os.path.join(args.log_dir, args.dataset)
         os.makedirs(log_dir, exist_ok=True)
         now = datetime.now().strftime('%Y%m%d_%H%M%S')
         log_file_path = os.path.join(log_dir, f'boar_training_{now}.log')
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(f'boar_{now}')
         self.logger.setLevel(logging.INFO)
         file_handler = logging.FileHandler(log_file_path)
         file_handler.setLevel(logging.INFO)
@@ -40,6 +40,10 @@ class BOARTrainer:
         self.logger.addHandler(file_handler)
         
         self.propensity_scores = self.densification_module.propensity_scores
+
+        self.logger.info('===== BOAR Experiment Arguments =====')
+        for key, value in vars(args).items():
+            self.logger.info(f'{key}: {value}')
 
     def _build_auxiliary_masks(self):
         device = self.args.device
@@ -160,7 +164,6 @@ class BOARTrainer:
         self.refinement_module.precompute_embeddings()
         self.densification_module.precompute_embeddings()
 
-        routing = getattr(self.args, 'routing', 'soft')
         topk_list = []
         with torch.no_grad():
             for user_indices, _, _ in tqdm(self.data['test_loader'], desc='Eval (General)', leave=False):
@@ -241,7 +244,6 @@ class BOARTrainer:
         self.refinement_module.precompute_embeddings()
         self.densification_module.precompute_embeddings()
 
-        routing = getattr(self.args, 'routing', 'soft')
         topk_list = []
         test_unobserved_users = []
 

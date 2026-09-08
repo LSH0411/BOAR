@@ -1,0 +1,35 @@
+# Tmall — hyperparameters reported in the paper
+dataset: tmall
+seed: 42
+
+propensity:
+  data_dir: ../data
+  emb_dim: 64
+  gnn_layers: 2
+  batch_size: 1024
+  lr: 0.0001
+  weight_decay: 0.0
+  neg_sample: 1
+  num_epochs: 30
+
+boar:
+  data_dir: ./data
+  topk: 10
+  batch_size: 1024
+  lr: 0.0005
+  weight_decay: 1.0e-06
+  num_epochs: 30
+  gnn_layers: 2
+  emb_dim: 32
+  sigma: 20.0
+  # Densification module (f0)
+  dense_cl_w: 0.6
+  dense_cl_temp: 0.2
+  dense_gumbel_temp: 0.2
+  lsh_top_k: 20
+  grl_lambda: 0.1
+  adv_w: 0.01
+  sample_size: 1024
+  # Refinement module (f1)
+  refine_cl_w: 0.1
+  refine_cl_temp: 4.4

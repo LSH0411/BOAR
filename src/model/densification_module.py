@@ -64,7 +64,8 @@ class DensificationModule(nn.Module):
         self.bsg_types = data['bsg_types']
         self.total_behaviors = ['glo'] + self.bsg_types
         self.target_behavior = 'buy'
-        self.sigma = 20
+        self.sigma = args.sigma
+        self.dropout = args.dropout_dense
 
         if dataset == 'taobao':
             self.aux_behaviors = ['cart', 'view']
@@ -74,13 +75,15 @@ class DensificationModule(nn.Module):
 
         self.bpr_loss = BPRLoss()
 
-        self.grl_lambda = 0.1
-        self.sample_size = 1024
-        self.adv_w = 0.01
+        self.grl_lambda = args.grl_lambda
+        self.sample_size = args.sample_size
+        self.adv_w = args.adv_w
         self.lsh_top_k = args.lsh_top_k
         self.cl_temp = args.dense_cl_temp
         self.cl_w = args.dense_cl_w
-        self.gumbel_temp = 0.2
+        self.gumbel_temp = args.dense_gumbel_temp
+        self.snips = args.snips
+        self.scale = args.scale
         self.cl_generator = torch.Generator(device=self.device)
         self.cl_generator.manual_seed(args.seed + 9999)
 
@@ -97,21 +100,19 @@ class DensificationModule(nn.Module):
         self.convs = nn.ModuleDict()
         for behavior_type in self.total_behaviors:
             self.convs[behavior_type] = nn.ModuleList([
-                GraphConvLayer(emb_dim, emb_dim, 'gcn', sigma=self.sigma)
+                GraphConvLayer(emb_dim, emb_dim, 'gcn', sigma=self.sigma, dropout=self.dropout)
                 for _ in range(self.gnn_layers)
             ])
 
         self.dense_convs = nn.ModuleList([
-            GraphConvLayer(emb_dim, emb_dim, 'dense', sigma=self.sigma)
+            GraphConvLayer(emb_dim, emb_dim, 'dense', sigma=self.sigma, dropout=self.dropout)
             for _ in range(1)
         ])
         self.domain_discriminator = nn.Linear(emb_dim, 1)  
         self.domain_loss_fn = nn.BCEWithLogitsLoss()  
         self._build_observed_mask()
         self._build_item_popularity_labels()
-        _here = os.path.dirname(os.path.abspath(__file__))
-        _propensity_path = os.path.join(_here, '..', '..', 'get_propensity', 'propensity_scores', args.dataset, 'propensity_scores.npy')
-        self._load_propensity_scores(_propensity_path, args.device)
+        self._load_propensity_scores(self._resolve_propensity_path(args), args.device)
         self._reset_parameters()
 
     def _reset_parameters(self):
@@ -144,6 +145,15 @@ class DensificationModule(nn.Module):
         self.item_pop_labels[0] = -1  
 
         self._pop_labels_on_gpu = False
+
+    @staticmethod
+    def _resolve_propensity_path(args):
+        if args.propensity_path is not None:
+            return args.propensity_path
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.join(
+            repo_root, 'get_propensity', 'propensity_scores', args.dataset, 'propensity_scores.npy'
+        )
 
     def _load_propensity_scores(self, propensity_path, device):
         if not os.path.exists(propensity_path):
@@ -348,13 +358,13 @@ class DensificationModule(nn.Module):
         
         items, labels = self._sample_adversarial_pairs(self.sample_size)
         adv_loss, _ = self._adversarial_loss(
-            i_glo, items, labels, grl_lambda=0.1
+            i_glo, items, labels, grl_lambda=self.grl_lambda
         )
         
         epsilon = 1e-8
         pos_propensity = self.propensity_scores[user_indices.cpu(), pos_indices.cpu()].to(self.device, non_blocking=True)
-        ips_weight = (1.0 / (pos_propensity + epsilon))**0.5
-        ips_weight = torch.clamp(ips_weight, max=5)
+        ips_weight = (1.0 / (pos_propensity + epsilon)) ** self.scale
+        ips_weight = torch.clamp(ips_weight, max=self.snips)
         normalized_ips_weight = ips_weight / (torch.sum(ips_weight) + epsilon)
 
         p_score = torch.einsum('ij,ij->i', u_target[user_indices], i_target[pos_indices])
