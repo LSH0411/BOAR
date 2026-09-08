@@ -26,7 +26,9 @@ pip install -r requirements.txt
 
 ## Usage
 
-Training BOAR consists of two stages.
+Training BOAR consists of two stages. `{data_name}` is one of `taobao`, `jdata` or
+`tmall`; each dataset's hyperparameters are read from `configs/{data_name}.yaml`, and
+any of them can be overridden on the command line.
 
 ### Stage 1: Propensity Score Estimation
 
@@ -34,7 +36,7 @@ Before training the main model, you first need to estimate propensity scores. Na
 
 ```bash
 cd get_propensity
-python ./src/main.py --dataset jdata
+python ./src/main.py --dataset {data_name} --device {cuda:#}
 ```
 
 ### Stage 2: Train BOAR
@@ -43,26 +45,6 @@ Once the propensity scores are ready, go back to the root directory and train th
 
 ```bash
 cd ..
-python ./src/main.py --dataset jdata
+python ./src/main.py --dataset {data_name} --device {cuda:#}
 ```
 ---
-
-## Configuration
-
-Each dataset has one config file, `configs/<dataset>.yaml`, resolved automatically from
-`--dataset` (`taobao`, `jdata`, `tmall`). It holds the hyperparameters used for the
-reported results, in a `propensity:` section for stage 1 and a `boar:` section for
-stage 2. Any value can be overridden on the command line:
-
-```bash
-python ./src/main.py --dataset taobao --device cuda:1 --lr 1e-3
-```
-
-Stage 1 writes `get_propensity/propensity_scores/<dataset>/propensity_scores.npy`, which
-is what stage 2 loads. Each BOAR run logs its full argument list and its final metrics to
-`log/<dataset>/boar_training_<timestamp>.log`: HR@10 / NDCG@10 on the full test set
-(`General`) and on its auxiliary-observed and auxiliary-unobserved splits (`Observed`,
-`Unobserved`).
-
-`scripts/` holds wrappers for the two stages (`train_propensity.sh`, `train_boar.sh`) and
-`run_all.sh`, which dispatches runs over several GPUs.
