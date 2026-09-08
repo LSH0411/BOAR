@@ -1,7 +1,7 @@
 # BOAR: Beyond Observed Auxiliary Relations
 
-> **Beyond Observed Auxiliary Relations: Environment-Conditioned Modeling for Multi-Behavior Recommendation**
-
+> **Beyond Observed Auxiliary Relations: Environment-Conditioned Modeling for Multi-Behavior Recommendation [CIKM'26]**
+https://arxiv.org/pdf/2608.22920
 <div align="center">
 
 ![Overview](./overview.png)
