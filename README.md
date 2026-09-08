@@ -27,8 +27,7 @@ pip install -r requirements.txt
 ## Usage
 
 Training BOAR consists of two stages. `{data_name}` is one of `taobao`, `jdata` or
-`tmall`; each dataset's hyperparameters are read from `configs/{data_name}.yaml`, and
-any of them can be overridden on the command line.
+`tmall`; each dataset's hyperparameters are read from `configs/{data_name}.yaml`.
 
 ### Stage 1: Propensity Score Estimation
 
